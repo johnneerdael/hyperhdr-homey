@@ -111,3 +111,50 @@ test('tokenRequired probe returns true when server requires auth', async () => {
   await client.close();
   await mock.stop();
 });
+
+test('emits update events for unsolicited push messages', async () => {
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'serverinfo') {
+        ws.send(JSON.stringify({
+          command: 'serverinfo', success: true, tan: msg.tan, info: { instance: [] }
+        }));
+        setTimeout(() => ws.send(JSON.stringify({
+          command: 'components-update',
+          data: { name: 'LEDDEVICE', enabled: false }
+        })), 10);
+      }
+    }
+  });
+
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port });
+  await client.connect();
+  const updatePromise = new Promise(resolve => client.once('update', resolve));
+  await client.request({ command: 'serverinfo' });
+  const update = await updatePromise;
+  assert.equal(update.command, 'components-update');
+  assert.equal(update.data.name, 'LEDDEVICE');
+  assert.equal(update.data.enabled, false);
+  await client.close();
+  await mock.stop();
+});
+
+test('subscribe sends serverinfo with subscribe array', async () => {
+  let received = null;
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'serverinfo') {
+        received = msg;
+        ws.send(JSON.stringify({
+          command: 'serverinfo', success: true, tan: msg.tan, info: {}
+        }));
+      }
+    }
+  });
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port });
+  await client.connect();
+  await client.subscribe(['components-update', 'priorities-update']);
+  assert.deepEqual(received.subscribe, ['components-update', 'priorities-update']);
+  await client.close();
+  await mock.stop();
+});
