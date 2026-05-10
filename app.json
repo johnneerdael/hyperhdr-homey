@@ -85,67 +85,81 @@
           "value": "Homey",
           "hint": { "en": "Identifier shown in HyperHDR's active-source list when Homey is driving the LEDs." }
         }
-      ],
-      "flow": {
-        "triggers": [
-          {
-            "id": "effect_started",
-            "title": { "en": "An effect started" },
-            "titleFormatted": { "en": "An effect started" },
-            "tokens": [
-              { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
-            ]
-          },
-          {
-            "id": "effect_stopped",
-            "title": { "en": "An effect stopped" },
-            "titleFormatted": { "en": "An effect stopped" },
-            "tokens": [
-              { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
-            ]
-          },
-          {
-            "id": "component_changed",
-            "title": { "en": "A component changed state" },
-            "titleFormatted": { "en": "Component [[component]] changed" },
-            "tokens": [
-              { "name": "component", "type": "string", "title": { "en": "Component" } },
-              { "name": "state", "type": "boolean", "title": { "en": "State" } }
-            ]
-          }
-        ],
-        "conditions": [],
-        "actions": [
-          {
-            "id": "start_effect",
-            "title": { "en": "Start effect" },
-            "titleFormatted": { "en": "Start effect [[effect]] for [[duration]] ms" },
-            "hint": { "en": "Run a HyperHDR effect by name. Duration 0 means indefinite." },
-            "args": [
-              { "name": "effect", "type": "autocomplete", "title": { "en": "Effect" } },
-              { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
-            ]
-          },
-          {
-            "id": "set_color",
-            "title": { "en": "Set color" },
-            "titleFormatted": { "en": "Set color to [[color]] for [[duration]] ms" },
-            "hint": { "en": "Send a solid colour at this device's priority. Duration 0 means indefinite." },
-            "args": [
-              { "name": "color", "type": "color", "title": { "en": "Color" } },
-              { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
-            ]
-          },
-          {
-            "id": "clear_effect",
-            "title": { "en": "Clear effect / restore color" },
-            "titleFormatted": { "en": "Clear effect" },
-            "hint": { "en": "Stop the running effect and restore the last solid colour if one was set." }
-          }
-        ]
-      }
+      ]
     }
   ],
+  "flow": {
+    "triggers": [
+      {
+        "id": "effect_started",
+        "title": { "en": "An effect started" },
+        "titleFormatted": { "en": "An effect started" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+        ]
+      },
+      {
+        "id": "effect_stopped",
+        "title": { "en": "An effect stopped" },
+        "titleFormatted": { "en": "An effect stopped" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+        ]
+      },
+      {
+        "id": "component_changed",
+        "title": { "en": "A component changed state" },
+        "titleFormatted": { "en": "Component [[component]] changed" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "component", "type": "string", "title": { "en": "Component" } },
+          { "name": "state", "type": "boolean", "title": { "en": "State" } }
+        ]
+      }
+    ],
+    "conditions": [],
+    "actions": [
+      {
+        "id": "start_effect",
+        "title": { "en": "Start effect" },
+        "titleFormatted": { "en": "Start effect [[effect]] for [[duration]] ms" },
+        "hint": { "en": "Run a HyperHDR effect by name. Duration 0 means indefinite." },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
+          { "name": "effect", "type": "autocomplete", "title": { "en": "Effect" } },
+          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+        ]
+      },
+      {
+        "id": "set_color",
+        "title": { "en": "Set color" },
+        "titleFormatted": { "en": "Set colour to [[color]] for [[duration]] ms" },
+        "hint": { "en": "Send a solid colour at this device's priority. Duration 0 means indefinite." },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
+          { "name": "color", "type": "color", "title": { "en": "Color" } },
+          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+        ]
+      },
+      {
+        "id": "clear_effect",
+        "title": { "en": "Clear effect / restore color" },
+        "titleFormatted": { "en": "Clear effect" },
+        "hint": { "en": "Stop the running effect and restore the last solid colour if one was set." },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ]
+      }
+    ]
+  },
   "capabilities": {
     "hyperhdr_effect": {
       "type": "enum",
