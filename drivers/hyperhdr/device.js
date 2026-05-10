@@ -7,6 +7,13 @@ class HyperHdrDevice extends Homey.Device {
   async onInit() {
     this._ctx = await initDevice(this, this._initOpts());
     bindCapabilityListeners(this, this._ctx);
+    try { await this.setAvailable(); } catch (_) {}
+    this.log(`onInit complete; available=${this.getAvailable()} capabilities=${JSON.stringify(this.getCapabilities())}`);
+  }
+
+  async onAdded() {
+    this.log('Device added (newly paired). Forcing setAvailable.');
+    try { await this.setAvailable(); } catch (_) {}
   }
 
   async onDeleted() {
