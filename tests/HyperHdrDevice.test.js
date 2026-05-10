@@ -292,3 +292,26 @@ test('priorities-update fires effect_started then effect_stopped', async () => {
   await ctx.shutdown();
   await mock.stop();
 });
+
+test('priority and origin settings are honoured by color commands', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 75, origin: 'TestOrigin' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  await device.setCapabilityValue('light_saturation', 1);
+  await device.setCapabilityValue('dim', 1);
+  sent.length = 0;
+  await device.triggerCapability('light_hue', 0);
+
+  const colorCmd = sent.find(m => m.command === 'color');
+  assert.equal(colorCmd.priority, 75);
+  assert.equal(colorCmd.origin, 'TestOrigin');
+
+  await ctx.shutdown();
+  await mock.stop();
+});
