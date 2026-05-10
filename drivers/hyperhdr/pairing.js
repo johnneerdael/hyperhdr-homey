@@ -16,12 +16,8 @@ async function listDevicesForServer({ host, port = 8090, token = null } = {}) {
     }
     const reply = await client.request({ command: 'serverinfo' });
     const info = reply.info || {};
-    if (!info.cid) {
-      const err = new Error('HyperHDR server did not report a stable id (cid). Update HyperHDR or contact the maintainer.');
-      err.code = 'ENOSERVERID';
-      throw err;
-    }
-    const serverId = info.cid;
+    // HyperHDR <= 22.x does not always report `cid`. Fall back to host:port.
+    const serverId = info.cid || `${host}:${port}`;
     const instances = (info.instance || []).filter(i => i.running);
     return instances.map(i => ({
       name: `HyperHDR — ${i.friendly_name}`,

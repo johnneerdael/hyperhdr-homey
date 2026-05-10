@@ -1,6 +1,6 @@
 <header class="homey-header">
-  <h1 data-i18n="pair.auth.title">Authentication required</h1>
-  <p data-i18n="pair.auth.body">Paste the bearer token from HyperHDR's web UI (Network Services &rarr; API Authentication).</p>
+  <h1>Authentication required</h1>
+  <p>Paste the bearer token from HyperHDR's web UI (Network Services &rarr; API Authentication).</p>
 </header>
 
 <form id="authForm" class="homey-form">
@@ -18,7 +18,7 @@
     try {
       const { devices } = await Homey.emit('auth_submit', { token });
       if (devices && devices.length) {
-        Homey.showView('list_devices');
+        Homey.showView('add_devices');
       } else {
         Homey.alert('No instances reported by server.');
       }

@@ -1,0 +1,65 @@
+<header class="homey-header">
+  <h1>Add a HyperHDR server</h1>
+  <p>Pick a discovered server, or add one manually.</p>
+</header>
+
+<section id="discovered" class="homey-form-group">
+  <h2 class="homey-title">Discovered on your network</h2>
+  <ul id="discoveredList" class="homey-list"></ul>
+  <p id="discoveredEmpty" style="display:none;color:var(--homey-color-mono-500)">No servers found yet — make sure HyperHDR is running on the same network, or add one manually below.</p>
+</section>
+
+<section class="homey-form-group">
+  <h2 class="homey-title">Add manually</h2>
+  <button id="manualBtn" class="homey-button-primary-full">Enter host &amp; port</button>
+</section>
+
+<script type="application/javascript">
+  async function refresh() {
+    const list = document.getElementById('discoveredList');
+    const empty = document.getElementById('discoveredEmpty');
+    list.innerHTML = '';
+    let items = [];
+    try {
+      items = await Homey.emit('discover_servers');
+    } catch (err) {
+      Homey.alert(err.message || String(err));
+    }
+    if (!items || items.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    for (const s of items) {
+      const li = document.createElement('li');
+      li.className = 'homey-list-item';
+      li.innerHTML = `
+        <div class="homey-list-item-content">
+          <p class="homey-list-item-title">${s.name}</p>
+          <p class="homey-list-item-subtitle">${s.host}:${s.port}</p>
+        </div>
+        <button class="homey-button-primary">Add</button>
+      `;
+      li.querySelector('button').addEventListener('click', async () => {
+        try {
+          const result = await Homey.emit('manual_submit', { host: s.host, port: s.port });
+          if (result && result.devices) {
+            Homey.showView('add_devices');
+          } else if (result && result.requiresAuth) {
+            Homey.showView('auth');
+          }
+        } catch (err) { Homey.alert(err.message || String(err)); }
+      });
+      list.appendChild(li);
+    }
+  }
+
+  document.getElementById('manualBtn').addEventListener('click', () => {
+    Homey.showView('manual');
+  });
+
+  refresh();
+  // re-poll while the view is open
+  const refreshTimer = setInterval(refresh, 4000);
+  window.addEventListener('beforeunload', () => clearInterval(refreshTimer));
+</script>

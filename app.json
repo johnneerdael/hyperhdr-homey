@@ -26,8 +26,8 @@
   "discovery": {
     "hyperhdr": {
       "type": "mdns-sd",
-      "mdns-sd": { "name": "hyperhdr-json", "protocol": "tcp" },
-      "id": "{{txt.id}}",
+      "mdns-sd": { "name": "hyperhdr-http", "protocol": "tcp" },
+      "id": "{{name}}",
       "conditions": []
     }
   },
@@ -48,10 +48,11 @@
         "xlarge": "/drivers/hyperhdr/assets/images/xlarge.png"
       },
       "pair": [
+        { "id": "start" },
         { "id": "list_devices", "template": "list_devices", "navigation": { "next": "add_devices" } },
-        { "id": "add_devices", "template": "add_devices" },
         { "id": "manual" },
-        { "id": "auth" }
+        { "id": "auth" },
+        { "id": "add_devices", "template": "add_devices" }
       ],
       "settings": [
         {

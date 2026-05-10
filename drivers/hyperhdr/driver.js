@@ -1,6 +1,7 @@
 'use strict';
 
 const Homey = require('homey');
+const { hexToRgb, rgbToHsv } = require('../../lib/color');
 const { listDevicesForServer } = require('./pairing');
 
 class HyperHdrDriver extends Homey.Driver {
@@ -34,7 +35,6 @@ class HyperHdrDriver extends Homey.Driver {
     setColor.registerRunListener(async (args) => {
       const device = args.device;
       const settings = device.getSettings();
-      const { hexToRgb, rgbToHsv } = require('../../lib/color');
       const baseRgb = hexToRgb(args.color);
       const dim = device.getCapabilityValue('dim') ?? 1;
       const finalRgb = baseRgb.map(c => Math.round(c * dim));
@@ -76,38 +76,33 @@ class HyperHdrDriver extends Homey.Driver {
   }
 
   onPair(session) {
+    let pendingDevices = [];
     let pairContext = { host: null, port: 8090, token: null };
 
-    session.setHandler('list_devices', async () => {
-      const discovered = this.getDiscoveryStrategy().getDiscoveryResults();
-      const results = [];
+    session.setHandler('discover_servers', async () => {
+      const discovered = this.getDiscoveryStrategy().getDiscoveryResults() || {};
+      const servers = [];
       for (const d of Object.values(discovered)) {
         const host = d.address;
-        const port = d.port || (d.txt && Number(d.txt.port)) || 8090;
-        try {
-          const devices = await listDevicesForServer({ host, port });
-          results.push(...devices);
-        } catch (err) {
-          if (err.code === 'EAUTHREQUIRED') {
-            this.log(`Server ${host} requires auth, skipping silent enumeration`);
-          } else {
-            this.error(`Failed to enumerate ${host}:`, err.message);
-          }
-        }
+        const port = d.port || 8090;
+        const name = d.name || `${host}:${port}`;
+        servers.push({ host, port, name });
       }
-      return results;
+      this.log(`Pair discover_servers: ${servers.length} server(s) found`);
+      return servers;
     });
 
     session.setHandler('manual_submit', async ({ host, port }) => {
       pairContext = { host, port: Number(port) || 8090, token: null };
       try {
         const devices = await listDevicesForServer(pairContext);
+        pendingDevices = devices;
         return { devices };
       } catch (err) {
         if (err.code === 'EAUTHREQUIRED') {
-          await session.showView('auth');
           return { devices: null, requiresAuth: true };
         }
+        this.error('manual_submit failed:', err.message);
         throw err;
       }
     });
@@ -115,7 +110,13 @@ class HyperHdrDriver extends Homey.Driver {
     session.setHandler('auth_submit', async ({ token }) => {
       pairContext.token = token;
       const devices = await listDevicesForServer(pairContext);
+      pendingDevices = devices;
       return { devices };
+    });
+
+    session.setHandler('list_devices', async () => {
+      // Called by the `add_devices` template. Return whatever the user lined up.
+      return pendingDevices;
     });
   }
 }
