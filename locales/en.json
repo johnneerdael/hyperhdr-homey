@@ -1,8 +1,31 @@
 {
-  "app": { "name": "HyperHDR" },
+  "app": {
+    "name": "HyperHDR"
+  },
   "errors": {
     "not_connected": "Cannot reach HyperHDR",
     "auth_failed": "Authentication failed; check the token",
     "no_devices_found": "No HyperHDR servers were discovered. Add one manually."
+  },
+  "pair": {
+    "manual": {
+      "title": "Add HyperHDR manually"
+    },
+    "auth": {
+      "title": "Authentication required",
+      "body": "Paste the bearer token from HyperHDR's web UI (Network Services → API Authentication)."
+    }
+  },
+  "flow": {
+    "actions": {
+      "start_effect": "Start effect",
+      "set_color": "Set color",
+      "clear_effect": "Clear effect / restore color"
+    },
+    "triggers": {
+      "effect_started": "An effect started",
+      "effect_stopped": "An effect stopped",
+      "component_changed": "A component changed state"
+    }
   }
 }
