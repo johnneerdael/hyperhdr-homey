@@ -33,16 +33,20 @@ class HyperHdrDevice extends Homey.Device {
   onDiscoveryResult(result) {
     const settings = this.getSettings();
     const settingsHost = (settings.host || '').toLowerCase();
-    if (!settingsHost) return false;
-    if (result.address && result.address.toLowerCase() === settingsHost) return true;
-    if (result.host && result.host.toLowerCase().replace(/\.$/, '') === settingsHost.replace(/\.local$/, '.local')) return true;
-    if (result.name && result.name.toLowerCase() === settingsHost) return true;
-    return false;
+    const candidates = [
+      result.address,
+      result.host,
+      (result.host || '').replace(/\.$/, ''),
+      result.name
+    ].filter(Boolean).map(s => s.toLowerCase());
+    const match = candidates.includes(settingsHost);
+    this.log(`onDiscoveryResult: settings.host="${settingsHost}" result={id:"${result.id}",address:"${result.address}",host:"${result.host}",name:"${result.name}",port:${result.port}} → match=${match}`);
+    return match;
   }
 
   async onDiscoveryAvailable(result) {
-    this.log(`Discovery match: address=${result.address} port=${result.port} name=${result.name}`);
-    try { await this.setAvailable(); } catch (_) {}
+    this.log(`Discovery match (onDiscoveryAvailable): ${result.address}:${result.port} (${result.name})`);
+    try { await this.setAvailable(); } catch (e) { this.error(`setAvailable in onDiscoveryAvailable: ${e.message}`); }
   }
 
   async onDiscoveryAddressChanged(result) {
