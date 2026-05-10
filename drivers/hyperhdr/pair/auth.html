@@ -18,7 +18,7 @@
     try {
       const { devices } = await Homey.emit('auth_submit', { token });
       if (devices && devices.length) {
-        Homey.showView('add_devices');
+        Homey.showView('list_devices');
       } else {
         Homey.alert('No instances reported by server.');
       }

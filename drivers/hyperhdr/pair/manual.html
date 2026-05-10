@@ -22,7 +22,7 @@
     try {
       const result = await Homey.emit('manual_submit', { host, port });
       if (result && result.devices) {
-        Homey.showView('add_devices');
+        Homey.showView('list_devices');
       } else if (result && result.requiresAuth) {
         Homey.showView('auth');
       } else {
