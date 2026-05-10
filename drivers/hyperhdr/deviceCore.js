@@ -256,12 +256,16 @@ async function onColorComponent(device, ctx, override = {}) {
   ctx.state.lastBaseRgb = baseRgb;
   ctx.state.lastEffect = null;
 
-  await ctx.client.request({
+  const payload = {
     command: 'color',
     priority: settings.priority,
     origin: settings.origin || 'Homey',
     color: finalRgb
-  });
+  };
+  device.log(`→ color request: ${JSON.stringify(payload)}`);
+  const reply = await ctx.client.request(payload);
+  device.log(`← color reply: ${JSON.stringify(reply)}`);
+
   if (device.getCapabilityValue('hyperhdr_effect') !== '__none__') {
     await device.setCapabilityValue('hyperhdr_effect', '__none__');
   }
