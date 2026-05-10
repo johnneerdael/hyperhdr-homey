@@ -4,7 +4,7 @@
   "description": "Local control of HyperHDR LED installations from Homey.",
   "main": "app.js",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test 'tests/**/*.test.js'",
     "validate": "homey app validate -l debug"
   },
   "engines": {
