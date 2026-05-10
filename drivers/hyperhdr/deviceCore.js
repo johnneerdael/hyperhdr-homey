@@ -31,21 +31,34 @@ async function initDevice(device, opts = {}) {
     client,
     state,
     triggerFlowCard,
-    async shutdown() { await client.stop(); }
+    shuttingDown: false,
+    async shutdown() {
+      this.shuttingDown = true;
+      await client.stop();
+    }
   };
 
   let firstConnectHandled = false;
 
-  client.on('error', err => device.error('client error', err.message));
-  client.on('closed', () => device.setUnavailable(unavailableMessage));
+  client.on('error', err => device.error(`HyperHDR client error: ${err.message}`));
+  client.on('closed', async () => {
+    if (ctx.shuttingDown) return; // intentional shutdown — don't touch the device
+    device.log('HyperHDR connection closed, reconnect will be attempted');
+    try {
+      await device.setUnavailable(unavailableMessage);
+    } catch (err) {
+      // Device may already be deleted — silently ignore
+    }
+  });
   client.on('connected', async () => {
     if (!firstConnectHandled) return; // initial bootstrap runs inline below
+    device.log('HyperHDR reconnected, re-bootstrapping');
     try {
       await bootstrap(client, device, state);
       await device.setAvailable();
     } catch (err) {
-      device.error('reconnect bootstrap failed', err.message);
-      await device.setUnavailable(err.message);
+      device.error(`reconnect bootstrap failed: ${err.message}`);
+      try { await device.setUnavailable(err.message); } catch (_) {}
     }
   });
   client.on('update', msg => onPushUpdate(msg, device, ctx));
@@ -74,6 +87,36 @@ async function bootstrap(client, device, state) {
   const reply = await client.request({ command: 'serverinfo' });
   state.snapshot = reply.info || {};
   await refreshEffectOptions(device, state.snapshot.effects || []);
+  await primeCapabilities(device, state);
+}
+
+async function primeCapabilities(device, state) {
+  const components = state.snapshot.components || [];
+  const ledDevice = components.find(c => c.name === 'LEDDEVICE');
+  const onoff = ledDevice ? Boolean(ledDevice.enabled) : true;
+
+  const activeEffect = pickEffect(state.snapshot.priorities);
+  state.activeEffect = activeEffect;
+
+  // Seed capability state so Homey marks the device as ready.
+  // Use ?? checks so we don't overwrite values the user already set
+  // (matters across reconnects).
+  if (device.getCapabilityValue('onoff') === null || device.getCapabilityValue('onoff') === undefined) {
+    await device.setCapabilityValue('onoff', onoff);
+  }
+  if (device.getCapabilityValue('dim') == null) {
+    await device.setCapabilityValue('dim', 1);
+  }
+  if (device.getCapabilityValue('light_hue') == null) {
+    await device.setCapabilityValue('light_hue', 0);
+  }
+  if (device.getCapabilityValue('light_saturation') == null) {
+    await device.setCapabilityValue('light_saturation', 0);
+  }
+  if (device.getCapabilityValue('light_mode') == null) {
+    await device.setCapabilityValue('light_mode', 'color');
+  }
+  await device.setCapabilityValue('hyperhdr_effect', activeEffect || '__none__');
 }
 
 async function refreshEffectOptions(device, effects) {
