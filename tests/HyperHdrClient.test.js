@@ -158,3 +158,31 @@ test('subscribe sends serverinfo with subscribe array', async () => {
   await client.close();
   await mock.stop();
 });
+
+test('reconnects after socket drops, fires connected event', async () => {
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'serverinfo') {
+        ws.send(JSON.stringify({ command: 'serverinfo', success: true, tan: msg.tan, info: {} }));
+      }
+    }
+  });
+
+  const client = new HyperHdrClient({
+    host: '127.0.0.1',
+    port: mock.port,
+    reconnect: { initialDelayMs: 20, maxDelayMs: 100, jitter: false }
+  });
+  await client.start();
+  await client.request({ command: 'serverinfo' });
+
+  const reconnected = new Promise(resolve => client.once('connected', resolve));
+  for (const ws of mock.wss.clients) ws.terminate();
+  await reconnected;
+
+  const reply = await client.request({ command: 'serverinfo' });
+  assert.equal(reply.success, true);
+
+  await client.stop();
+  await mock.stop();
+});
