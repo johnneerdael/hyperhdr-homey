@@ -27,3 +27,29 @@ test('connects, sends serverinfo, receives reply, closes cleanly', async () => {
   await client.close();
   await mock.stop();
 });
+
+test('correlates concurrent requests by tan', async () => {
+  const replies = new Map([
+    ['serverinfo', { command: 'serverinfo', success: true, info: {} }],
+    ['sysinfo', { command: 'sysinfo', success: true, info: { hostname: 'h' } }]
+  ]);
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      const base = replies.get(msg.command);
+      if (!base) return;
+      const delay = msg.command === 'serverinfo' ? 30 : 5;
+      setTimeout(() => ws.send(JSON.stringify({ ...base, tan: msg.tan })), delay);
+    }
+  });
+
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port });
+  await client.connect();
+  const [a, b] = await Promise.all([
+    client.request({ command: 'serverinfo' }),
+    client.request({ command: 'sysinfo' })
+  ]);
+  assert.equal(a.command, 'serverinfo');
+  assert.equal(b.command, 'sysinfo');
+  await client.close();
+  await mock.stop();
+});
