@@ -1,5 +1,5 @@
 {
-  "name": "com.hyperhdr.homey",
+  "name": "nl.neerdael.hyperhdr",
   "version": "1.0.0",
   "description": "Local control of HyperHDR LED installations from Homey.",
   "main": "app.js",

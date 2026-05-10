@@ -1,17 +1,24 @@
 {
-  "id": "com.hyperhdr.homey",
+  "id": "nl.neerdael.hyperhdr",
   "version": "1.0.0",
   "compatibility": ">=5.0.0",
   "sdk": 3,
+  "runtime": "nodejs",
+  "platforms": ["local"],
+  "brandColor": "#FF7A00",
   "name": { "en": "HyperHDR" },
   "description": { "en": "Local control of HyperHDR LED installations." },
-  "category": ["lights"],
+  "category": "lights",
+  "tags": { "en": ["hyperhdr", "led", "lights", "ambilight"] },
   "permissions": [],
   "images": {
     "small": "/assets/icon.svg",
     "large": "/assets/icon.svg"
   },
-  "author": { "name": "HyperHDR Homey contributors" },
+  "author": {
+    "name": "John Neerdael",
+    "email": "john@neerdael.nl"
+  },
   "discovery": {
     "hyperhdr": {
       "type": "mdns-sd",
