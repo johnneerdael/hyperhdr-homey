@@ -3,7 +3,7 @@
 const HyperHdrClient = require('../../lib/HyperHdrClient');
 const { hsvToScaledRgb } = require('../../lib/color');
 
-const SUBSCRIPTIONS = ['components-update', 'priorities-update', 'effects-update', 'instance-update'];
+const SUBSCRIPTIONS = ['components-update', 'priorities-update', 'instance-update'];
 
 async function initDevice(device, opts = {}) {
   const settings = device.getSettings();
@@ -55,8 +55,10 @@ async function initDevice(device, opts = {}) {
     await bootstrap(client, device, state);
     firstConnectHandled = true;
     await device.setAvailable();
+    device.log(`HyperHDR initialised: ${settings.host}:${settings.port || 8090} instance ${state.instance}`);
   } catch (err) {
     firstConnectHandled = true;
+    device.error(`HyperHDR init failed for ${settings.host}:${settings.port || 8090}: ${err.message}`);
     await device.setUnavailable(unavailableMessage);
   }
 
