@@ -186,3 +186,53 @@ test('dim updates color when in solid mode', async () => {
   await ctx.shutdown();
   await mock.stop();
 });
+
+test('setting effect sends effect command at priority', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  sent.length = 0;
+  await device.triggerCapability('hyperhdr_effect', 'Rainbow');
+  const effectCmd = sent.find(m => m.command === 'effect');
+  assert.ok(effectCmd);
+  assert.equal(effectCmd.priority, 128);
+  assert.equal(effectCmd.effect.name, 'Rainbow');
+  assert.equal(ctx.state.lastEffect, 'Rainbow');
+
+  await ctx.shutdown();
+  await mock.stop();
+});
+
+test('setting effect to __none__ clears priority and restores last color', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  await device.setCapabilityValue('dim', 1);
+  ctx.state.lastBaseRgb = [10, 20, 30];
+  ctx.state.lastEffect = 'Rainbow';
+
+  sent.length = 0;
+  await device.triggerCapability('hyperhdr_effect', '__none__');
+  const clearCmd = sent.find(m => m.command === 'clear');
+  assert.ok(clearCmd);
+  assert.equal(clearCmd.priority, 128);
+  const colorCmd = sent.find(m => m.command === 'color');
+  assert.ok(colorCmd);
+  assert.deepEqual(colorCmd.color, [10, 20, 30]);
+  assert.equal(ctx.state.lastEffect, null);
+
+  await ctx.shutdown();
+  await mock.stop();
+});

@@ -80,6 +80,37 @@ function bindCapabilityListeners(device, ctx) {
   device.registerCapabilityListener('dim', value => onColorComponent(device, ctx, { dim: value }));
   device.registerCapabilityListener('light_hue', value => onColorComponent(device, ctx, { hue: value }));
   device.registerCapabilityListener('light_saturation', value => onColorComponent(device, ctx, { saturation: value }));
+  device.registerCapabilityListener('hyperhdr_effect', value => onEffect(device, ctx, value));
+}
+
+async function onEffect(device, ctx, name) {
+  const settings = device.getSettings();
+  if (!name || name === '__none__') {
+    await ctx.client.request({ command: 'clear', priority: settings.priority });
+    ctx.state.lastEffect = null;
+    const dim = device.getCapabilityValue('dim') ?? 1;
+    if (dim > 0 && ctx.state.lastBaseRgb) {
+      const factor = dim;
+      await ctx.client.request({
+        command: 'color',
+        priority: settings.priority,
+        origin: settings.origin || 'Homey',
+        color: [
+          Math.round(ctx.state.lastBaseRgb[0] * factor),
+          Math.round(ctx.state.lastBaseRgb[1] * factor),
+          Math.round(ctx.state.lastBaseRgb[2] * factor)
+        ]
+      });
+    }
+    return;
+  }
+  await ctx.client.request({
+    command: 'effect',
+    priority: settings.priority,
+    origin: settings.origin || 'Homey',
+    effect: { name }
+  });
+  ctx.state.lastEffect = name;
 }
 
 async function onColorComponent(device, ctx, override) {
