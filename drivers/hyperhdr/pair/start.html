@@ -40,15 +40,26 @@
         </div>
         <button class="homey-button-primary">Add</button>
       `;
-      li.querySelector('button').addEventListener('click', async () => {
+      li.querySelector('button').addEventListener('click', async (event) => {
+        const btn = event.currentTarget;
+        btn.disabled = true;
+        btn.textContent = 'Connecting…';
         try {
           const result = await Homey.emit('manual_submit', { host: s.host, port: s.port });
-          if (result && result.devices) {
+          if (result && result.devices && result.devices.length) {
             Homey.showView('add_devices');
           } else if (result && result.requiresAuth) {
             Homey.showView('auth');
+          } else {
+            Homey.alert('Server reported no running instances.');
+            btn.disabled = false;
+            btn.textContent = 'Add';
           }
-        } catch (err) { Homey.alert(err.message || String(err)); }
+        } catch (err) {
+          Homey.alert(err && err.message ? err.message : String(err));
+          btn.disabled = false;
+          btn.textContent = 'Add';
+        }
       });
       list.appendChild(li);
     }

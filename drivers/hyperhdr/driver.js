@@ -94,24 +94,34 @@ class HyperHdrDriver extends Homey.Driver {
 
     session.setHandler('manual_submit', async ({ host, port }) => {
       pairContext = { host, port: Number(port) || 8090, token: null };
+      this.log(`Pair manual_submit: ${pairContext.host}:${pairContext.port}`);
       try {
         const devices = await listDevicesForServer(pairContext);
+        this.log(`Pair manual_submit: enumerated ${devices.length} instance(s)`);
         pendingDevices = devices;
         return { devices };
       } catch (err) {
         if (err.code === 'EAUTHREQUIRED') {
+          this.log('Pair manual_submit: server requires auth');
           return { devices: null, requiresAuth: true };
         }
-        this.error('manual_submit failed:', err.message);
+        this.error(`Pair manual_submit failed for ${pairContext.host}:${pairContext.port}:`, err.message);
         throw err;
       }
     });
 
     session.setHandler('auth_submit', async ({ token }) => {
       pairContext.token = token;
-      const devices = await listDevicesForServer(pairContext);
-      pendingDevices = devices;
-      return { devices };
+      this.log(`Pair auth_submit: token provided for ${pairContext.host}:${pairContext.port}`);
+      try {
+        const devices = await listDevicesForServer(pairContext);
+        this.log(`Pair auth_submit: enumerated ${devices.length} instance(s)`);
+        pendingDevices = devices;
+        return { devices };
+      } catch (err) {
+        this.error('Pair auth_submit failed:', err.message);
+        throw err;
+      }
     });
 
     session.setHandler('list_devices', async () => {
