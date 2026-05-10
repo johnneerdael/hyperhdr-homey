@@ -1,0 +1,18 @@
+{
+  "name": "com.hyperhdr.homey",
+  "version": "1.0.0",
+  "description": "Local control of HyperHDR LED installations from Homey.",
+  "main": "app.js",
+  "scripts": {
+    "test": "node --test tests/",
+    "validate": "homey app validate -l debug"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "homey": "^3.0.0",
+    "ws": "^8.16.0"
+  },
+  "license": "MIT"
+}

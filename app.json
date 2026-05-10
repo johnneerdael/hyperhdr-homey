@@ -1,0 +1,18 @@
+{
+  "id": "com.hyperhdr.homey",
+  "version": "1.0.0",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "name": { "en": "HyperHDR" },
+  "description": { "en": "Local control of HyperHDR LED installations." },
+  "category": ["lights"],
+  "permissions": [],
+  "images": {
+    "small": "/assets/icon.svg",
+    "large": "/assets/icon.svg"
+  },
+  "author": { "name": "HyperHDR Homey contributors" },
+  "drivers": [],
+  "capabilities": {},
+  "flow": { "triggers": [], "conditions": [], "actions": [] }
+}
