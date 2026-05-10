@@ -1,2 +1,29 @@
-<header class="homey-header"><h1>Authentication required</h1></header>
-<p>Stub view; replaced in Task 10.</p>
+<header class="homey-header">
+  <h1 data-i18n="pair.auth.title">Authentication required</h1>
+  <p data-i18n="pair.auth.body">Paste the bearer token from HyperHDR's web UI (Network Services &rarr; API Authentication).</p>
+</header>
+
+<form id="authForm" class="homey-form">
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="token">Token</label>
+    <input class="homey-form-input" id="token" name="token" required>
+  </div>
+  <button type="submit" class="homey-button-primary-full">Authenticate</button>
+</form>
+
+<script type="application/javascript">
+  document.getElementById('authForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const token = document.getElementById('token').value.trim();
+    try {
+      const { devices } = await Homey.emit('auth_submit', { token });
+      if (devices && devices.length) {
+        Homey.showView('list_devices');
+      } else {
+        Homey.alert('No instances reported by server.');
+      }
+    } catch (err) {
+      Homey.alert(err.message || String(err));
+    }
+  });
+</script>
