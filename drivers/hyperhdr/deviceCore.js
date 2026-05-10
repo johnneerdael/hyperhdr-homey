@@ -72,7 +72,55 @@ async function refreshEffectOptions(device, effects) {
 }
 
 function onPushUpdate(msg, device, state) {
-  // Filled in Task 16
+  switch (msg.command) {
+    case 'components-update':
+      handleComponentsUpdate(msg.data, device);
+      break;
+    case 'priorities-update':
+      handlePrioritiesUpdate(msg.data, device, state);
+      break;
+    case 'effects-update':
+      if (Array.isArray(msg.data && msg.data.effects)) {
+        refreshEffectOptions(device, msg.data.effects).catch(err => device.error(err.message));
+      }
+      break;
+    case 'instance-update':
+      // No-op: Homey devices are pinned to a specific instance
+      break;
+  }
+}
+
+function handleComponentsUpdate(data, device) {
+  if (!data || !data.name) return;
+  const tracked = ['LEDDEVICE', 'SMOOTHING', 'HDR'];
+  if (!tracked.includes(data.name)) return;
+  device.driver.triggerCardFire('component_changed',
+    { component: data.name, state: Boolean(data.enabled) },
+    {}
+  );
+}
+
+function handlePrioritiesUpdate(data, device, state) {
+  const next = pickEffect(data && data.priorities);
+  const prev = state.activeEffect || null;
+  if (next && next !== prev) {
+    device.driver.triggerCardFire('effect_started', { effect: next }, {});
+  }
+  if (!next && prev) {
+    device.driver.triggerCardFire('effect_stopped', { effect: prev }, {});
+  }
+  state.activeEffect = next;
+}
+
+function pickEffect(priorities) {
+  if (!Array.isArray(priorities)) return null;
+  for (const p of priorities) {
+    if (!p.visible) continue;
+    if (p.componentId === 'EFFECT' || (p.owner && /effect/i.test(p.owner))) {
+      return (p.value && p.value.effect) || p.owner || 'effect';
+    }
+  }
+  return null;
 }
 
 function bindCapabilityListeners(device, ctx) {
@@ -172,5 +220,6 @@ module.exports = {
   onPushUpdate,
   bindCapabilityListeners,
   applyLastColor,
+  pickEffect,
   SUBSCRIPTIONS
 };

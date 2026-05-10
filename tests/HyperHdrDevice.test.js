@@ -236,3 +236,59 @@ test('setting effect to __none__ clears priority and restores last color', async
   await ctx.shutdown();
   await mock.stop();
 });
+
+test('component change push fires component_changed trigger', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  for (const ws of mock.wss.clients) {
+    ws.send(JSON.stringify({ command: 'components-update', data: { name: 'LEDDEVICE', enabled: false } }));
+  }
+  await new Promise(r => setTimeout(r, 30));
+
+  const triggers = device.flowTriggers();
+  const cc = triggers.find(t => t.id === 'component_changed');
+  assert.ok(cc, 'component_changed fired');
+  assert.equal(cc.tokens.component, 'LEDDEVICE');
+  assert.equal(cc.tokens.state, false);
+
+  await ctx.shutdown();
+  await mock.stop();
+});
+
+test('priorities-update fires effect_started then effect_stopped', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  for (const ws of mock.wss.clients) {
+    ws.send(JSON.stringify({
+      command: 'priorities-update',
+      data: { priorities: [{ priority: 200, owner: 'EFFECT', componentId: 'EFFECT', visible: true, value: { effect: 'Rainbow' } }] }
+    }));
+  }
+  await new Promise(r => setTimeout(r, 30));
+  let triggers = device.flowTriggers();
+  assert.ok(triggers.find(t => t.id === 'effect_started' && t.tokens.effect === 'Rainbow'));
+
+  for (const ws of mock.wss.clients) {
+    ws.send(JSON.stringify({ command: 'priorities-update', data: { priorities: [] } }));
+  }
+  await new Promise(r => setTimeout(r, 30));
+  triggers = device.flowTriggers();
+  assert.ok(triggers.find(t => t.id === 'effect_stopped' && t.tokens.effect === 'Rainbow'));
+
+  await ctx.shutdown();
+  await mock.stop();
+});
