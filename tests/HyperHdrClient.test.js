@@ -53,3 +53,61 @@ test('correlates concurrent requests by tan', async () => {
   await client.close();
   await mock.stop();
 });
+
+test('authorize sends token and resolves on success', async () => {
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'authorize' && msg.subcommand === 'login' && msg.token === 'good') {
+        ws.send(JSON.stringify({ command: 'authorize-login', success: true, tan: msg.tan }));
+      } else if (msg.command === 'authorize') {
+        ws.send(JSON.stringify({
+          command: 'authorize-login', success: false, tan: msg.tan, error: 'No Authorization'
+        }));
+      }
+    }
+  });
+
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port, token: 'good' });
+  await client.connect();
+  await client.authorize();
+  await client.close();
+  await mock.stop();
+});
+
+test('authorize rejects on bad token', async () => {
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'authorize') {
+        ws.send(JSON.stringify({
+          command: 'authorize-login', success: false, tan: msg.tan, error: 'No Authorization'
+        }));
+      }
+    }
+  });
+
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port, token: 'bad' });
+  await client.connect();
+  await assert.rejects(() => client.authorize(), /No Authorization/);
+  await client.close();
+  await mock.stop();
+});
+
+test('tokenRequired probe returns true when server requires auth', async () => {
+  const mock = await startMockServer({
+    onMessage: (msg, ws) => {
+      if (msg.command === 'authorize' && msg.subcommand === 'tokenRequired') {
+        ws.send(JSON.stringify({
+          command: 'authorize-tokenRequired',
+          success: true,
+          tan: msg.tan,
+          info: { required: true }
+        }));
+      }
+    }
+  });
+  const client = new HyperHdrClient({ host: '127.0.0.1', port: mock.port });
+  await client.connect();
+  assert.equal(await client.tokenRequired(), true);
+  await client.close();
+  await mock.stop();
+});
