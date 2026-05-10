@@ -1,5 +1,8 @@
 {
-  "app": {
-    "name": "HyperHDR"
+  "app": { "name": "HyperHDR" },
+  "errors": {
+    "not_connected": "Cannot reach HyperHDR",
+    "auth_failed": "Authentication failed; check the token",
+    "no_devices_found": "No HyperHDR servers were discovered. Add one manually."
   }
 }

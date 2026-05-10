@@ -13,6 +13,81 @@
   },
   "author": { "name": "HyperHDR Homey contributors" },
   "drivers": [],
-  "capabilities": {},
-  "flow": { "triggers": [], "conditions": [], "actions": [] }
+  "capabilities": {
+    "hyperhdr_effect": {
+      "type": "enum",
+      "title": { "en": "Effect" },
+      "uiComponent": "picker",
+      "getable": true,
+      "setable": true,
+      "values": [
+        { "id": "__none__", "title": { "en": "No effect" } }
+      ]
+    }
+  },
+  "flow": {
+    "triggers": [
+      {
+        "id": "effect_started",
+        "title": { "en": "An effect started" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+        ]
+      },
+      {
+        "id": "effect_stopped",
+        "title": { "en": "An effect stopped" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+        ]
+      },
+      {
+        "id": "component_changed",
+        "title": { "en": "A component changed state" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ],
+        "tokens": [
+          { "name": "component", "type": "string", "title": { "en": "Component" } },
+          { "name": "state", "type": "boolean", "title": { "en": "State" } }
+        ]
+      }
+    ],
+    "conditions": [],
+    "actions": [
+      {
+        "id": "start_effect",
+        "title": { "en": "Start effect" },
+        "titleFormatted": { "en": "Start effect [[effect]] for [[duration]] ms" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
+          { "name": "effect", "type": "autocomplete", "title": { "en": "Effect" } },
+          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+        ]
+      },
+      {
+        "id": "set_color",
+        "title": { "en": "Set color" },
+        "titleFormatted": { "en": "Set color to [[color]] for [[duration]] ms" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
+          { "name": "color", "type": "color", "title": { "en": "Color" } },
+          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+        ]
+      },
+      {
+        "id": "clear_effect",
+        "title": { "en": "Clear effect / restore color" },
+        "args": [
+          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
+        ]
+      }
+    ]
+  }
 }
