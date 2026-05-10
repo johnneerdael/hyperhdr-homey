@@ -74,4 +74,46 @@ function onPushUpdate(msg, device, state) {
   // Filled in Task 16
 }
 
-module.exports = { initDevice, refreshEffectOptions, onPushUpdate, SUBSCRIPTIONS };
+function bindCapabilityListeners(device, ctx) {
+  device.registerCapabilityListener('onoff', value => onOnOff(device, ctx, value));
+}
+
+async function onOnOff(device, ctx, value) {
+  const settings = device.getSettings();
+  await ctx.client.request({
+    command: 'componentstate',
+    componentstate: { component: 'LEDDEVICE', state: Boolean(value) }
+  });
+  if (value) {
+    await applyLastColor(device, ctx);
+  } else {
+    await ctx.client.request({ command: 'clear', priority: settings.priority });
+  }
+}
+
+async function applyLastColor(device, ctx) {
+  const settings = device.getSettings();
+  const rgb = ctx.state.lastBaseRgb || [255, 255, 255];
+  const dim = device.getCapabilityValue('dim');
+  const factor = typeof dim === 'number' ? dim : 1;
+  const scaled = [
+    Math.round(rgb[0] * factor),
+    Math.round(rgb[1] * factor),
+    Math.round(rgb[2] * factor)
+  ];
+  await ctx.client.request({
+    command: 'color',
+    priority: settings.priority,
+    origin: settings.origin || 'Homey',
+    color: scaled
+  });
+}
+
+module.exports = {
+  initDevice,
+  refreshEffectOptions,
+  onPushUpdate,
+  bindCapabilityListeners,
+  applyLastColor,
+  SUBSCRIPTIONS
+};

@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { startMockServer } = require('./helpers/mockHyperHdrServer');
 const { MockDevice } = require('./helpers/mockHomey');
-const { initDevice } = require('../drivers/hyperhdr/deviceCore');
+const { initDevice, bindCapabilityListeners } = require('../drivers/hyperhdr/deviceCore');
 
 function serverinfoReply(tan, instance = 0) {
   return {
@@ -62,4 +62,76 @@ test('initDevice marks unavailable when server is unreachable', async () => {
   assert.equal(device.isAvailable(), false);
   assert.match(device.unavailableReason() || '', /reach/i);
   await ctx.shutdown();
+});
+
+function makeServer(sent) {
+  return startMockServer({
+    onMessage: (msg, ws) => {
+      sent.push(msg);
+      if (msg.command === 'authorize' && msg.subcommand === 'tokenRequired') {
+        ws.send(JSON.stringify({ command: 'authorize-tokenRequired', success: true, tan: msg.tan, info: { required: false } }));
+      } else if (msg.command === 'serverinfo') {
+        ws.send(JSON.stringify({
+          command: 'serverinfo', success: true, tan: msg.tan,
+          info: { cid: 'srv-1', effects: [{ name: 'Rainbow' }], instance: [{ instance: 0, friendly_name: 'L', running: true }], components: [], priorities: [] }
+        }));
+      } else {
+        ws.send(JSON.stringify({ command: msg.command, success: true, tan: msg.tan }));
+      }
+    }
+  });
+}
+
+test('onoff true enables LEDDEVICE and reapplies last solid color', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  await device.setCapabilityValue('light_hue', 0);
+  await device.setCapabilityValue('light_saturation', 1);
+  await device.setCapabilityValue('dim', 1);
+  ctx.state.lastBaseRgb = [255, 0, 0];
+
+  sent.length = 0;
+  await device.triggerCapability('onoff', true);
+
+  const componentstate = sent.find(m => m.command === 'componentstate');
+  assert.ok(componentstate);
+  assert.equal(componentstate.componentstate.component, 'LEDDEVICE');
+  assert.equal(componentstate.componentstate.state, true);
+
+  const colorCmd = sent.find(m => m.command === 'color');
+  assert.ok(colorCmd, 'color reapplied after on');
+  assert.deepEqual(colorCmd.color, [255, 0, 0]);
+
+  await ctx.shutdown();
+  await mock.stop();
+});
+
+test('onoff false disables LEDDEVICE and clears our priority', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  sent.length = 0;
+  await device.triggerCapability('onoff', false);
+
+  const componentstate = sent.find(m => m.command === 'componentstate');
+  assert.equal(componentstate.componentstate.state, false);
+  const clearCmd = sent.find(m => m.command === 'clear');
+  assert.ok(clearCmd);
+  assert.equal(clearCmd.priority, 128);
+
+  await ctx.shutdown();
+  await mock.stop();
 });

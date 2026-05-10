@@ -1,7 +1,7 @@
 'use strict';
 
 const Homey = require('homey');
-const { initDevice } = require('./deviceCore');
+const { initDevice, bindCapabilityListeners } = require('./deviceCore');
 
 class HyperHdrDevice extends Homey.Device {
   async onInit() {
@@ -20,7 +20,7 @@ class HyperHdrDevice extends Homey.Device {
   }
 
   _bindCapabilityListeners() {
-    // Filled in subsequent tasks
+    bindCapabilityListeners(this, this._ctx);
   }
 }
 
