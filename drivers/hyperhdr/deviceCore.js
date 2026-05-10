@@ -184,11 +184,31 @@ function pickEffect(priorities) {
 }
 
 function bindCapabilityListeners(device, ctx) {
-  device.registerCapabilityListener('onoff', value => onOnOff(device, ctx, value));
-  device.registerCapabilityListener('dim', value => onColorComponent(device, ctx, { dim: value }));
-  device.registerCapabilityListener('light_hue', value => onColorComponent(device, ctx, { hue: value }));
-  device.registerCapabilityListener('light_saturation', value => onColorComponent(device, ctx, { saturation: value }));
-  device.registerCapabilityListener('hyperhdr_effect', value => onEffect(device, ctx, value));
+  device.registerCapabilityListener('onoff', async (value) => {
+    device.log(`cap onoff → ${value}`);
+    try { await onOnOff(device, ctx, value); }
+    catch (err) { device.error(`onoff failed: ${err.message}`); throw err; }
+  });
+  device.registerCapabilityListener('dim', async (value) => {
+    device.log(`cap dim → ${value}`);
+    try { await onColorComponent(device, ctx, { dim: value }); }
+    catch (err) { device.error(`dim failed: ${err.message}`); throw err; }
+  });
+  device.registerCapabilityListener('light_hue', async (value) => {
+    device.log(`cap light_hue → ${value}`);
+    try { await onColorComponent(device, ctx, { hue: value }); }
+    catch (err) { device.error(`light_hue failed: ${err.message}`); throw err; }
+  });
+  device.registerCapabilityListener('light_saturation', async (value) => {
+    device.log(`cap light_saturation → ${value}`);
+    try { await onColorComponent(device, ctx, { saturation: value }); }
+    catch (err) { device.error(`light_saturation failed: ${err.message}`); throw err; }
+  });
+  device.registerCapabilityListener('hyperhdr_effect', async (value) => {
+    device.log(`cap hyperhdr_effect → ${value}`);
+    try { await onEffect(device, ctx, value); }
+    catch (err) { device.error(`hyperhdr_effect failed: ${err.message}`); throw err; }
+  });
 }
 
 async function onEffect(device, ctx, name) {
@@ -221,11 +241,15 @@ async function onEffect(device, ctx, name) {
   ctx.state.lastEffect = name;
 }
 
-async function onColorComponent(device, ctx, override) {
-  const hue = override.hue ?? device.getCapabilityValue('light_hue') ?? 0;
-  const saturation = override.saturation ?? device.getCapabilityValue('light_saturation') ?? 1;
+async function onColorComponent(device, ctx, override = {}) {
+  // Accept both shorthand keys ({hue, saturation, dim}) and Homey capability
+  // names ({light_hue, light_saturation, dim}) so the same helper works for
+  // single-cap listeners and registerMultipleCapabilityListener.
+  const hue = override.hue ?? override.light_hue ?? device.getCapabilityValue('light_hue') ?? 0;
+  const saturation = override.saturation ?? override.light_saturation ?? device.getCapabilityValue('light_saturation') ?? 1;
   const dim = override.dim ?? device.getCapabilityValue('dim') ?? 1;
   const settings = device.getSettings();
+  device.log(`onColorComponent: hue=${hue} sat=${saturation} dim=${dim} priority=${settings.priority}`);
 
   const baseRgb = hsvToScaledRgb({ hue, saturation, dim: 1 });
   const finalRgb = hsvToScaledRgb({ hue, saturation, dim });
