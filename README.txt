@@ -1,0 +1,3 @@
+Bring your HyperHDR LED installation into Homey. Each HyperHDR instance pairs as its own device with the standard light tile so you can control on/off, dimming, hue and saturation alongside your other lights, and pick from the server's effect list right on the device.
+
+Flow cards let you start effects by name, set a colour for a duration, or clear an effect to fall back to the last colour. Triggers fire when an effect starts or stops or when a HyperHDR component changes state, so Homey can react to changes happening anywhere in your setup. Everything runs on your local network with optional bearer-token authentication.

@@ -3,3 +3,16 @@ node_modules/
 .DS_Store
 *.log
 .homeybuild/
+
+# Working art files (sources for icons/images, not shipped)
+*.sketch
+*.sketch.zip
+spaces_-*
+hyperhdr.png
+hyperhdr.svg
+hyperhdrlogo*.png
+hyperhdr-app-image.png
+app-image-small.png
+app-image-large.png
+app-image-xlarge.png
+driver-image.png

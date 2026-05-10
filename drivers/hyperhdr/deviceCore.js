@@ -9,6 +9,8 @@ async function initDevice(device, opts = {}) {
   const settings = device.getSettings();
   const data = device.getData();
   const token = device.getStoreValue('token') || null;
+  const unavailableMessage = opts.unavailableMessage || 'Cannot reach HyperHDR';
+  const triggerFlowCard = opts.triggerFlowCard || (() => {});
 
   const client = new HyperHdrClient({
     host: settings.host,
@@ -25,27 +27,37 @@ async function initDevice(device, opts = {}) {
     activeEffect: null
   };
 
-  const ctx = { client, state, async shutdown() { await client.stop(); } };
+  const ctx = {
+    client,
+    state,
+    triggerFlowCard,
+    async shutdown() { await client.stop(); }
+  };
+
+  let firstConnectHandled = false;
 
   client.on('error', err => device.error('client error', err.message));
-  client.on('closed', () => device.setUnavailable(opts.unavailableMessage || 'Cannot reach HyperHDR'));
+  client.on('closed', () => device.setUnavailable(unavailableMessage));
   client.on('connected', async () => {
+    if (!firstConnectHandled) return; // initial bootstrap runs inline below
     try {
       await bootstrap(client, device, state);
       await device.setAvailable();
     } catch (err) {
-      device.error('bootstrap failed', err.message);
+      device.error('reconnect bootstrap failed', err.message);
       await device.setUnavailable(err.message);
     }
   });
-  client.on('update', msg => onPushUpdate(msg, device, state));
+  client.on('update', msg => onPushUpdate(msg, device, ctx));
 
   try {
     await client.start();
     await bootstrap(client, device, state);
+    firstConnectHandled = true;
     await device.setAvailable();
   } catch (err) {
-    await device.setUnavailable(opts.unavailableMessage || 'Cannot reach HyperHDR');
+    firstConnectHandled = true;
+    await device.setUnavailable(unavailableMessage);
   }
 
   return ctx;
@@ -71,13 +83,13 @@ async function refreshEffectOptions(device, effects) {
   await device.setCapabilityOptions('hyperhdr_effect', { values });
 }
 
-function onPushUpdate(msg, device, state) {
+function onPushUpdate(msg, device, ctx) {
   switch (msg.command) {
     case 'components-update':
-      handleComponentsUpdate(msg.data, device);
+      handleComponentsUpdate(msg.data, ctx);
       break;
     case 'priorities-update':
-      handlePrioritiesUpdate(msg.data, device, state);
+      handlePrioritiesUpdate(msg.data, ctx);
       break;
     case 'effects-update':
       if (Array.isArray(msg.data && msg.data.effects)) {
@@ -90,26 +102,23 @@ function onPushUpdate(msg, device, state) {
   }
 }
 
-function handleComponentsUpdate(data, device) {
+function handleComponentsUpdate(data, ctx) {
   if (!data || !data.name) return;
   const tracked = ['LEDDEVICE', 'SMOOTHING', 'HDR'];
   if (!tracked.includes(data.name)) return;
-  device.driver.triggerCardFire('component_changed',
-    { component: data.name, state: Boolean(data.enabled) },
-    {}
-  );
+  ctx.triggerFlowCard('component_changed', { component: data.name, state: Boolean(data.enabled) }, {});
 }
 
-function handlePrioritiesUpdate(data, device, state) {
+function handlePrioritiesUpdate(data, ctx) {
   const next = pickEffect(data && data.priorities);
-  const prev = state.activeEffect || null;
+  const prev = ctx.state.activeEffect || null;
   if (next && next !== prev) {
-    device.driver.triggerCardFire('effect_started', { effect: next }, {});
+    ctx.triggerFlowCard('effect_started', { effect: next }, {});
   }
   if (!next && prev) {
-    device.driver.triggerCardFire('effect_stopped', { effect: prev }, {});
+    ctx.triggerFlowCard('effect_stopped', { effect: prev }, {});
   }
-  state.activeEffect = next;
+  ctx.state.activeEffect = next;
 }
 
 function pickEffect(priorities) {

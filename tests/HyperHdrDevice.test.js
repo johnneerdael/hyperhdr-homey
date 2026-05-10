@@ -40,7 +40,7 @@ test('initDevice connects, subscribes, populates effect options', async () => {
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
 
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   const opts = device.getCapabilityOptions('hyperhdr_effect');
   assert.ok(opts, 'effect options were set');
   const ids = opts.values.map(v => v.id);
@@ -58,7 +58,10 @@ test('initDevice marks unavailable when server is unreachable', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: 1, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device, { reconnect: { initialDelayMs: 5, maxDelayMs: 20, jitter: false } });
+  const ctx = await initDevice(device, {
+    reconnect: { initialDelayMs: 5, maxDelayMs: 20, jitter: false },
+    triggerFlowCard: device.triggerFlowCard()
+  });
   assert.equal(device.isAvailable(), false);
   assert.match(device.unavailableReason() || '', /reach/i);
   await ctx.shutdown();
@@ -89,7 +92,7 @@ test('onoff true enables LEDDEVICE and reapplies last solid color', async () => 
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   await device.setCapabilityValue('light_hue', 0);
@@ -120,7 +123,7 @@ test('onoff false disables LEDDEVICE and clears our priority', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   sent.length = 0;
@@ -143,7 +146,7 @@ test('setting hue triggers a color command with brightness applied', async () =>
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 100, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   await device.setCapabilityValue('light_saturation', 1);
@@ -168,7 +171,7 @@ test('dim updates color when in solid mode', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 100, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   await device.setCapabilityValue('light_hue', 0);
@@ -194,7 +197,7 @@ test('setting effect sends effect command at priority', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   sent.length = 0;
@@ -216,7 +219,7 @@ test('setting effect to __none__ clears priority and restores last color', async
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   await device.setCapabilityValue('dim', 1);
@@ -244,7 +247,7 @@ test('component change push fires component_changed trigger', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   for (const ws of mock.wss.clients) {
@@ -269,7 +272,7 @@ test('priorities-update fires effect_started then effect_stopped', async () => {
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 128, origin: 'Homey' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   for (const ws of mock.wss.clients) {
@@ -300,7 +303,7 @@ test('priority and origin settings are honoured by color commands', async () => 
     data: { serverId: 'srv-1', instance: 0 },
     settings: { host: '127.0.0.1', port: mock.port, priority: 75, origin: 'TestOrigin' }
   });
-  const ctx = await initDevice(device);
+  const ctx = await initDevice(device, { triggerFlowCard: device.triggerFlowCard() });
   bindCapabilityListeners(device, ctx);
 
   await device.setCapabilityValue('light_saturation', 1);

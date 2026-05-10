@@ -1,0 +1,5 @@
+{
+  "1.0.0": {
+    "en": "Initial release. Adds local control of HyperHDR LED installations: on/off, dimming, hue and saturation, and effects. One Homey device per HyperHDR instance with mDNS discovery, optional bearer-token authentication, and Flow cards for starting effects, setting colours, and reacting to component changes."
+  }
+}

@@ -14,7 +14,6 @@ class MockDevice extends EventEmitter {
     this._unavailableReason = null;
     this._listeners = new Map();
     this._triggers = [];
-    this.driver = { triggerCardFire: (id, tokens) => this._triggers.push({ id, tokens }) };
   }
 
   getData() { return this._data; }
@@ -39,6 +38,11 @@ class MockDevice extends EventEmitter {
   isAvailable() { return this._available; }
   unavailableReason() { return this._unavailableReason; }
   flowTriggers() { return this._triggers; }
+
+  // Returns a triggerFlowCard fn suitable for `initDevice(this, { triggerFlowCard })`
+  triggerFlowCard() {
+    return (id, tokens, state) => this._triggers.push({ id, tokens, state });
+  }
 }
 
 module.exports = { MockDevice };

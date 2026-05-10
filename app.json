@@ -1,24 +1,28 @@
 {
   "id": "nl.neerdael.hyperhdr",
   "version": "1.0.0",
-  "compatibility": ">=5.0.0",
+  "compatibility": ">=12.2.0",
   "sdk": 3,
   "runtime": "nodejs",
   "platforms": ["local"],
   "brandColor": "#FF7A00",
   "name": { "en": "HyperHDR" },
-  "description": { "en": "Local control of HyperHDR LED installations." },
+  "description": { "en": "Drive your HyperHDR LEDs from Homey: colour, dimming, effects, all on your local network." },
   "category": "lights",
   "tags": { "en": ["hyperhdr", "led", "lights", "ambilight"] },
   "permissions": [],
   "images": {
-    "small": "/assets/icon.svg",
-    "large": "/assets/icon.svg"
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
     "name": "John Neerdael",
     "email": "john@neerdael.nl"
   },
+  "support": "https://github.com/johnneerdael/hyperhdr-homey/issues",
+  "source": "https://github.com/johnneerdael/hyperhdr-homey",
+  "homepage": "https://github.com/johnneerdael/hyperhdr-homey",
   "discovery": {
     "hyperhdr": {
       "type": "mdns-sd",
@@ -30,7 +34,7 @@
   "drivers": [
     {
       "id": "hyperhdr",
-      "name": { "en": "HyperHDR Instance" },
+      "name": { "en": "HyperHDR Server" },
       "class": "light",
       "capabilities": [
         "onoff", "dim", "light_hue", "light_saturation", "light_mode", "hyperhdr_effect"
@@ -39,8 +43,9 @@
       "connectivity": ["lan"],
       "discovery": "hyperhdr",
       "images": {
-        "small": "/drivers/hyperhdr/assets/icon.svg",
-        "large": "/drivers/hyperhdr/assets/icon.svg"
+        "small": "/drivers/hyperhdr/assets/images/small.png",
+        "large": "/drivers/hyperhdr/assets/images/large.png",
+        "xlarge": "/drivers/hyperhdr/assets/images/xlarge.png"
       },
       "pair": [
         { "id": "list_devices", "template": "list_devices", "navigation": { "next": "add_devices" } },
@@ -49,11 +54,96 @@
         { "id": "auth" }
       ],
       "settings": [
-        { "id": "host", "type": "text", "label": { "en": "Host" } },
-        { "id": "port", "type": "number", "label": { "en": "Port" }, "value": 8090 },
-        { "id": "priority", "type": "number", "label": { "en": "Priority (1-253)" }, "value": 128, "min": 1, "max": 253 },
-        { "id": "origin", "type": "text", "label": { "en": "Origin label" }, "value": "Homey" }
-      ]
+        {
+          "id": "host",
+          "type": "text",
+          "label": { "en": "Host" },
+          "hint": { "en": "Hostname or IP address of the HyperHDR server (e.g. hyperhdr.local or 192.168.1.50)." }
+        },
+        {
+          "id": "port",
+          "type": "number",
+          "label": { "en": "Port" },
+          "value": 8090,
+          "min": 1,
+          "max": 65535,
+          "hint": { "en": "JSON-RPC WebSocket port. Default 8090." }
+        },
+        {
+          "id": "priority",
+          "type": "number",
+          "label": { "en": "Priority" },
+          "value": 128,
+          "min": 1,
+          "max": 253,
+          "hint": { "en": "HyperHDR priority slot Homey uses (1-253). Lower values win over higher ones; 128 matches the Home Assistant default." }
+        },
+        {
+          "id": "origin",
+          "type": "text",
+          "label": { "en": "Origin label" },
+          "value": "Homey",
+          "hint": { "en": "Identifier shown in HyperHDR's active-source list when Homey is driving the LEDs." }
+        }
+      ],
+      "flow": {
+        "triggers": [
+          {
+            "id": "effect_started",
+            "title": { "en": "An effect started" },
+            "titleFormatted": { "en": "An effect started" },
+            "tokens": [
+              { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+            ]
+          },
+          {
+            "id": "effect_stopped",
+            "title": { "en": "An effect stopped" },
+            "titleFormatted": { "en": "An effect stopped" },
+            "tokens": [
+              { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
+            ]
+          },
+          {
+            "id": "component_changed",
+            "title": { "en": "A component changed state" },
+            "titleFormatted": { "en": "Component [[component]] changed" },
+            "tokens": [
+              { "name": "component", "type": "string", "title": { "en": "Component" } },
+              { "name": "state", "type": "boolean", "title": { "en": "State" } }
+            ]
+          }
+        ],
+        "conditions": [],
+        "actions": [
+          {
+            "id": "start_effect",
+            "title": { "en": "Start effect" },
+            "titleFormatted": { "en": "Start effect [[effect]] for [[duration]] ms" },
+            "hint": { "en": "Run a HyperHDR effect by name. Duration 0 means indefinite." },
+            "args": [
+              { "name": "effect", "type": "autocomplete", "title": { "en": "Effect" } },
+              { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+            ]
+          },
+          {
+            "id": "set_color",
+            "title": { "en": "Set color" },
+            "titleFormatted": { "en": "Set color to [[color]] for [[duration]] ms" },
+            "hint": { "en": "Send a solid colour at this device's priority. Duration 0 means indefinite." },
+            "args": [
+              { "name": "color", "type": "color", "title": { "en": "Color" } },
+              { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
+            ]
+          },
+          {
+            "id": "clear_effect",
+            "title": { "en": "Clear effect / restore color" },
+            "titleFormatted": { "en": "Clear effect" },
+            "hint": { "en": "Stop the running effect and restore the last solid colour if one was set." }
+          }
+        ]
+      }
     }
   ],
   "capabilities": {
@@ -67,70 +157,5 @@
         { "id": "__none__", "title": { "en": "No effect" } }
       ]
     }
-  },
-  "flow": {
-    "triggers": [
-      {
-        "id": "effect_started",
-        "title": { "en": "An effect started" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
-        ],
-        "tokens": [
-          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
-        ]
-      },
-      {
-        "id": "effect_stopped",
-        "title": { "en": "An effect stopped" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
-        ],
-        "tokens": [
-          { "name": "effect", "type": "string", "title": { "en": "Effect name" } }
-        ]
-      },
-      {
-        "id": "component_changed",
-        "title": { "en": "A component changed state" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
-        ],
-        "tokens": [
-          { "name": "component", "type": "string", "title": { "en": "Component" } },
-          { "name": "state", "type": "boolean", "title": { "en": "State" } }
-        ]
-      }
-    ],
-    "conditions": [],
-    "actions": [
-      {
-        "id": "start_effect",
-        "title": { "en": "Start effect" },
-        "titleFormatted": { "en": "Start effect [[effect]] for [[duration]] ms" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
-          { "name": "effect", "type": "autocomplete", "title": { "en": "Effect" } },
-          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
-        ]
-      },
-      {
-        "id": "set_color",
-        "title": { "en": "Set color" },
-        "titleFormatted": { "en": "Set color to [[color]] for [[duration]] ms" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" },
-          { "name": "color", "type": "color", "title": { "en": "Color" } },
-          { "name": "duration", "type": "number", "min": 0, "step": 100, "title": { "en": "Duration (ms, 0 = indefinite)" } }
-        ]
-      },
-      {
-        "id": "clear_effect",
-        "title": { "en": "Clear effect / restore color" },
-        "args": [
-          { "name": "device", "type": "device", "filter": "driver_id=hyperhdr" }
-        ]
-      }
-    ]
   }
 }
