@@ -5,7 +5,7 @@
   "sdk": 3,
   "runtime": "nodejs",
   "platforms": ["local"],
-  "brandColor": "#FF7A00",
+  "brandColor": "#FF0000",
   "name": { "en": "HyperHDR" },
   "description": { "en": "Drive your HyperHDR LEDs from Homey: colour, dimming, effects, all on your local network." },
   "category": "lights",
