@@ -1,6 +1,7 @@
 'use strict';
 
 const HyperHdrClient = require('../../lib/HyperHdrClient');
+const { hsvToScaledRgb } = require('../../lib/color');
 
 const SUBSCRIPTIONS = ['components-update', 'priorities-update', 'effects-update', 'instance-update'];
 
@@ -76,6 +77,31 @@ function onPushUpdate(msg, device, state) {
 
 function bindCapabilityListeners(device, ctx) {
   device.registerCapabilityListener('onoff', value => onOnOff(device, ctx, value));
+  device.registerCapabilityListener('dim', value => onColorComponent(device, ctx, { dim: value }));
+  device.registerCapabilityListener('light_hue', value => onColorComponent(device, ctx, { hue: value }));
+  device.registerCapabilityListener('light_saturation', value => onColorComponent(device, ctx, { saturation: value }));
+}
+
+async function onColorComponent(device, ctx, override) {
+  const hue = override.hue ?? device.getCapabilityValue('light_hue') ?? 0;
+  const saturation = override.saturation ?? device.getCapabilityValue('light_saturation') ?? 1;
+  const dim = override.dim ?? device.getCapabilityValue('dim') ?? 1;
+  const settings = device.getSettings();
+
+  const baseRgb = hsvToScaledRgb({ hue, saturation, dim: 1 });
+  const finalRgb = hsvToScaledRgb({ hue, saturation, dim });
+  ctx.state.lastBaseRgb = baseRgb;
+  ctx.state.lastEffect = null;
+
+  await ctx.client.request({
+    command: 'color',
+    priority: settings.priority,
+    origin: settings.origin || 'Homey',
+    color: finalRgb
+  });
+  if (device.getCapabilityValue('hyperhdr_effect') !== '__none__') {
+    await device.setCapabilityValue('hyperhdr_effect', '__none__');
+  }
 }
 
 async function onOnOff(device, ctx, value) {

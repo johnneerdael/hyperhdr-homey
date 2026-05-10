@@ -135,3 +135,54 @@ test('onoff false disables LEDDEVICE and clears our priority', async () => {
   await ctx.shutdown();
   await mock.stop();
 });
+
+test('setting hue triggers a color command with brightness applied', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 100, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  await device.setCapabilityValue('light_saturation', 1);
+  await device.setCapabilityValue('dim', 0.5);
+  sent.length = 0;
+  await device.triggerCapability('light_hue', 0);
+
+  const colorCmd = sent.find(m => m.command === 'color');
+  assert.ok(colorCmd);
+  assert.equal(colorCmd.priority, 100);
+  assert.deepEqual(colorCmd.color, [128, 0, 0]);
+  assert.equal(colorCmd.origin, 'Homey');
+
+  await ctx.shutdown();
+  await mock.stop();
+});
+
+test('dim updates color when in solid mode', async () => {
+  const sent = [];
+  const mock = await makeServer(sent);
+  const device = new MockDevice({
+    data: { serverId: 'srv-1', instance: 0 },
+    settings: { host: '127.0.0.1', port: mock.port, priority: 100, origin: 'Homey' }
+  });
+  const ctx = await initDevice(device);
+  bindCapabilityListeners(device, ctx);
+
+  await device.setCapabilityValue('light_hue', 0);
+  await device.setCapabilityValue('light_saturation', 1);
+  await device.setCapabilityValue('dim', 1);
+  ctx.state.lastBaseRgb = [255, 0, 0];
+
+  sent.length = 0;
+  await device.triggerCapability('dim', 0.25);
+
+  const colorCmd = sent.find(m => m.command === 'color');
+  assert.ok(colorCmd);
+  assert.deepEqual(colorCmd.color, [64, 0, 0]);
+
+  await ctx.shutdown();
+  await mock.stop();
+});
