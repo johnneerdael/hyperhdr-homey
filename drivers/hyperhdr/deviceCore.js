@@ -3,7 +3,7 @@
 const HyperHdrClient = require('../../lib/HyperHdrClient');
 const { hsvToScaledRgb } = require('../../lib/color');
 
-const SUBSCRIPTIONS = ['components-update', 'priorities-update', 'instance-update'];
+const SUBSCRIPTIONS = ['components-update', 'priorities-update', 'instance-update', 'settings-update'];
 
 async function initDevice(device, opts = {}) {
   const settings = device.getSettings();
@@ -93,15 +93,21 @@ function onPushUpdate(msg, device, ctx) {
     case 'priorities-update':
       handlePrioritiesUpdate(msg.data, ctx);
       break;
-    case 'effects-update':
-      if (Array.isArray(msg.data && msg.data.effects)) {
-        refreshEffectOptions(device, msg.data.effects).catch(err => device.error(err.message));
-      }
+    case 'settings-update':
+      // Settings changed (could include the effects directory). Re-fetch
+      // serverinfo and refresh the effect picker.
+      refreshSnapshot(device, ctx).catch(err => device.error(`refreshSnapshot: ${err.message}`));
       break;
     case 'instance-update':
       // No-op: Homey devices are pinned to a specific instance
       break;
   }
+}
+
+async function refreshSnapshot(device, ctx) {
+  const reply = await ctx.client.request({ command: 'serverinfo' });
+  ctx.state.snapshot = reply.info || {};
+  await refreshEffectOptions(device, ctx.state.snapshot.effects || []);
 }
 
 function handleComponentsUpdate(data, ctx) {
